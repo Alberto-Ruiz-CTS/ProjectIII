@@ -15,8 +15,9 @@ from scipy.spatial.distance import cosine, euclidean, cityblock
 import warnings
 warnings.filterwarnings("ignore")
 
+#Remove the background of an image
 def remove_background(image_path, new_path):
-    """ Remove the background of the images """
+    """ Remove the background of the images and save it in a new folder """
 
     input = Image.open(image_path)
 
@@ -27,7 +28,10 @@ def remove_background(image_path, new_path):
     output = remove(input)
     output.save(new_path + '/' + image_name, format='PNG')
 
+#Extract the features of an image
 def features_extraction(model, im_path, size=224):
+    """ Search the paths for the iamges, preprocess the data and return the features for an image """
+
     #define transformations to preprocess images
     preprocess = transforms.Compose([     
             transforms.Resize(size),             # resize shortest side to specified pixels
@@ -37,7 +41,6 @@ def features_extraction(model, im_path, size=224):
                                 [0.229, 0.224, 0.225])
         ])
 
-    
     img_names = []
 
     #Create list with all the paths to the images
@@ -78,8 +81,9 @@ def features_extraction(model, im_path, size=224):
 
     return features_extracted
 
-
+#Give the similarity between to images
 def similarity_extraction(input_image_path, features_extracted, method="cosine"):
+    """ Calculate the similarity of two images with the method provides in input and returns a sorted dictionary """
 
     if method not in ("cosine", "euclidean", "manhattan"):
 
@@ -107,11 +111,12 @@ def similarity_extraction(input_image_path, features_extracted, method="cosine")
     sorted_value_index = np.argsort(values)[::-1]
     sorted_similarities = {keys[i]: values[i] for i in sorted_value_index}
     
-
     return sorted_similarities
 
-
+#Make a rank of each model
 def ranking_similarities(dict_similarities, top_n=10):
+    """ Create a list of the rankings for each model """
+    
     ranks = []
  
     for models in dict_similarities:
@@ -124,9 +129,11 @@ def ranking_similarities(dict_similarities, top_n=10):
    
     return ranks
 
-
+#Returns a rank with the fusion of the individuals ranking
 def reciprocal_rank_fusion(ranks, k=0):
-    n   = len(ranks[0])
+    """ Fusion of the differents ranks the user provides and returns a sorted dictionary with the best ones """
+
+    n = len(ranks[0])
     scores = {}
     for rank in ranks:
         for i, path in enumerate(rank, start=1):
@@ -143,8 +150,9 @@ def reciprocal_rank_fusion(ranks, k=0):
 
     return sorted_scores
     
-
+#Plot the best recommendations for the input image
 def plot_recommendations(sorted_similarities, input_image_path, model_name="", top_n=4):
+    """ Plot the best k recommendations for the input image """
 
     #Create list with the paths for the top_n most similar images
     sorted_paths = []
