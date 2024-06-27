@@ -5,11 +5,21 @@ from scipy.spatial.distance import cosine, euclidean, cityblock
 import numpy as np
 
 def borda_count(ranks):
-    points = np.zeros(len(ranks[0]))
+    n = len(ranks[0])
+    points = np.zeros(n)
     for rank in ranks:
         for i, idx in enumerate(rank):
-            points[idx] += i
+            points[idx] += (n - i)
     return np.argsort(points)
+
+
+def reciprocal_rank_fusion(ranks, k=0):
+n = len(ranks[0])
+scores = np.zeros(n)
+for rank in ranks:
+    for i, idx in enumerate(rank):
+        scores[idx] += 1 / (k + i)
+return np.argsort(scores)[::-1]
 
 def recommend_fashion_items_cnn(input_image_path, all_features, all_image_names, model, top_n=5):
     # Preprocess the input image and extract features
