@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
 from torchvision.utils import make_grid
-from scipy.spatial.distance import cosine
+from scipy.spatial.distance import cosine, euclidean, cityblock
 import os
 
 import numpy as np
@@ -57,32 +57,38 @@ def features_extraction(model, im_path, size=224):
         param.requires_grad = False
 
     #Create dict with paths as keys and features (numpy array) as values
-    all_features = {}
+    features_extracted = {}
 
     model.eval()
     with torch.no_grad():
         for path in images.keys():
             feature = model(images[path].view(1,3,size,size)).numpy()
-            all_features[path] = np.reshape(feature, feature.shape[1])
+            features_extracted[path] = np.reshape(feature, feature.shape[1])
 
-    return all_features
-
-
+    return features_extracted
 
 
-def similarity_extraction(input_image_path, all_features, method="cosine"):
 
-    if method not in ("cosine", "euclidean"):
+
+def similarity_extraction(input_image_path, features_extracted, method="cosine"):
+
+    if method not in ("cosine", "euclidean", "manhattan"):
 
         raise ValueError("Method not valid")
 
-    input_features = all_features[input_image_path]
+    input_features = features_extracted[input_image_path]
     
     similarities = {} #Dict with path as keys and similarity as values
 
     if method == "cosine":
-        for path in all_features:
-            similarities[path] = 1 - cosine(input_features, all_features[path])
+        for path in features_extracted:
+            similarities[path] = 1 - cosine(input_features, features_extracted[path])
+    elif method == "euclidean":
+        for path in features_extracted:
+            similarities[path] = - euclidean(input_features, features_extracted[path])
+    elif method == "manhattan":
+        for path in features_extracted:
+            similarities[path] = - cityblock(input_features, features_extracted[path])
     else:
         raise Exception("Method not implemented yet")
 
@@ -94,9 +100,43 @@ def similarity_extraction(input_image_path, all_features, method="cosine"):
     
 
     return sorted_similarities
+
+
+def ranking_similarities(dict_similarities, top_n=10):
+    ranks = []
+ 
+    for models in dict_similarities:
+        rank = []
+        for i, path in enumerate(dict_similarities[models]):
+            if (i != 0) and (i <= top_n):
+                rank.append(path)
+ 
+        ranks.append(rank)
+   
+    return ranks
+
+
+def reciprocal_rank_fusion(ranks, k=0):
+    n   = len(ranks[0])
+    scores = {}
+    for rank in ranks:
+        for i, path in enumerate(rank, start=1):
+            if path in scores.keys():
+                scores[path] += 1 / (k + i)
+            else:
+                scores[path] = 1 / (k + i)
+    
+    #sort this scores dict by their similarities from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
+
     
 
-def plot_recommendations(sorted_similarities, model_name="",top_n=4):
+def plot_recommendations(sorted_similarities, input_image_path, model_name="", top_n=4):
 
     #Create list with the paths for the top_n most similar images
     sorted_paths = []
@@ -107,7 +147,6 @@ def plot_recommendations(sorted_similarities, model_name="",top_n=4):
         else: 
             break
     
-    input_image_path = sorted_paths[0]
     # display the input image
     plt.figure(figsize=(15, 10))
     plt.subplot(1, top_n + 1, 1)
