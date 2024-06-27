@@ -1,20 +1,31 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
 
+from PIL import Image
+from rembg import remove
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
 from torchvision.utils import make_grid
 from scipy.spatial.distance import cosine, euclidean, cityblock
-import os
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-from PIL import Image
 # ignore harmless warnings
 import warnings
 warnings.filterwarnings("ignore")
 
+def remove_background(image_path, new_path):
+    """ Remove the background of the images """
+
+    input = Image.open(image_path)
+
+    path_directories = [directory for directory in image_path.split('/')]
+    image_name = path_directories[-1]
+    print(image_name)
+
+    output = remove(input)
+    output.save(new_path + '/' + image_name, format='PNG')
 
 def features_extraction(model, im_path, size=224):
     #define transformations to preprocess images
@@ -45,7 +56,7 @@ def features_extraction(model, im_path, size=224):
     for path in img_names: 
 
         try:
-            image = preprocess(Image.open(path))
+            image = preprocess(Image.open(path).convert('RGB'))
             images[path] = image
         
         except:
@@ -66,8 +77,6 @@ def features_extraction(model, im_path, size=224):
             features_extracted[path] = np.reshape(feature, feature.shape[1])
 
     return features_extracted
-
-
 
 
 def similarity_extraction(input_image_path, features_extracted, method="cosine"):
@@ -133,7 +142,6 @@ def reciprocal_rank_fusion(ranks, k=0):
     sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
 
     return sorted_scores
-
     
 
 def plot_recommendations(sorted_similarities, input_image_path, model_name="", top_n=4):
@@ -161,6 +169,4 @@ def plot_recommendations(sorted_similarities, input_image_path, model_name="", t
         plt.imshow(Image.open(image_path))
         plt.title(f"Recommendation {i}")
         plt.axis('off')
-
-
-    
+  
