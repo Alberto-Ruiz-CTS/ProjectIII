@@ -81,6 +81,27 @@ def features_extraction(model, im_path, size=224):
 
     return features_extracted
 
+#Drop fully connected layer from the model to retain only th encoder
+def get_encoder(model_name):
+
+    match model_name: #each model requires a different action depending
+        case 'vgg16':
+            model = models.vgg16(pretrained=True)
+            model.classifier = model.classifier[:-1]
+            return model_name
+        case 'resnet50':
+            model = models.resnet50(pretrained=True)
+            model = nn.Sequential(*list(model.children())[:-1])
+            return model
+        case 'efficientnet_b0':
+            model = models.efficientnet_b0(pretrained=True)
+            model = nn.Sequential(*list(model.children())[:-1])
+            return model
+        case 'googlenet':
+            model = models.googlenet(pretrained=True)
+            model = nn.Sequential(*list(model.children())[:-1])
+            return model
+
 #Give the similarity between to images
 def similarity_extraction(input_image_path, features_extracted, method="cosine"):
     """ Calculate the similarity of two images with the method provides in input and returns a sorted dictionary """
