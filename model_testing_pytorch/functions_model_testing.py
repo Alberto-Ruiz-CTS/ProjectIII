@@ -152,7 +152,7 @@ def ranking_similarities(dict_similarities, top_n=10):
 
 #Returns a rank with the fusion of the individuals ranking
 def reciprocal_rank_fusion(ranks, k=0):
-    """ Fusion of the differents ranks the user provides and returns a sorted dictionary with the best ones """
+    """ Fusion of the differents ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
 
     n = len(ranks[0])
     scores = {}
@@ -163,7 +163,7 @@ def reciprocal_rank_fusion(ranks, k=0):
             else:
                 scores[path] = 1 / (k + i)
     
-    #sort this scores dict by their similarities from largest to smallest
+    #sort this scores dict by their score values from largest to smallest
     keys = list(scores.keys())
     values = list(scores.values())
     sorted_value_index = np.argsort(values)[::-1]
