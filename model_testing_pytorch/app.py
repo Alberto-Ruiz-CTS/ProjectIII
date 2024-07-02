@@ -44,13 +44,11 @@ def upload_and_display():
     sorted_sim_per_model = {}
     for model_name in test_models:
       if input_path in feats[model_name]: 
-        print('Imagen en el dataset')
+        pass
       else:
-        print('No existe imagen en el dataset')
         model, size = test_models[model_name]
         model = f.get_encoder(model_name)
         input_feature = f.features_extraction(model, p.ext_path, size=size)
-        print(input_feature)
         #feats[model_name][input_path] = input_feature[input_path]
         feats[model_name].update(input_feature)
 
