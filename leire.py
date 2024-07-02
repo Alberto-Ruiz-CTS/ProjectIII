@@ -4,15 +4,80 @@ print("Hola")
 from scipy.spatial.distance import cosine, euclidean, cityblock
 import numpy as np
 
-def borda_count(ranks):
+################# updated ##################
+# Reciprocal Rank Fusion
+def reciprocal_rank_fusion(ranks, k=0):
+    """ Fusion of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+
     n = len(ranks[0])
-    points = np.zeros(n)
+    scores = {}
     for rank in ranks:
-        for i, idx in enumerate(rank):
-            points[idx] += (n - i)
-    return np.argsort(points)
+        for i, path in enumerate(rank, start=1):
+            if path in scores.keys():
+                scores[path] += 1 / (k + i)
+            else:
+                scores[path] = 1 / (k + i)
+
+    #sort this scores dict by their score values from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
 
 
+# Borda Algorithm
+def borda_count(ranks):
+    """ Broda algorithm of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+
+    n = len(ranks[0])
+    scores = {}
+    for rank in ranks:
+        for i, path in enumerate(rank):
+            if path in scores.keys():
+                scores[path] += (n - i)
+            else:
+                scores[path] = (n - i)
+
+    #sort this scores dict by their score values from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
+
+
+# Relative Score Fusion
+def relative_score_fusion(sorted_sim_per_model):
+    """ Fusion of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+
+    # normalize similiarities
+    norm_similarity = {}
+    for model_name in test_models:
+        for metrics in ['cosine', 'euclidean', 'manhattan']:
+            total_sim = sum(sorted_sim_per_model[model_name + '_' + metrics].values())
+            for path in sorted_sim_per_model[model_name + '_' + metrics]:
+                norm_similarity[model_name + '_' + metrics][path] = sorted_sim_per_model[model_name + '_' + metrics][path] / total_sim
+
+    scores = {}
+    for method in norm_similarity:
+        for path in norm_similarity[method]:
+            if path in scores.keys():
+                scores[path] += norm_similarity[method][path]
+            else:
+                scores[path] = norm_similarity[method][path]
+
+    #sort this scores dict by their score values from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
+
+###################################################################################
 def reciprocal_rank_fusion(ranks, k=0):
     n   = len(ranks[0])
     scores = np.zeros(n)
