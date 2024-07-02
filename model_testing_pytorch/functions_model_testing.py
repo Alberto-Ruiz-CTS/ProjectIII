@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
 from torchvision.utils import make_grid
 from scipy.spatial.distance import cosine, euclidean, cityblock
+import torch.nn as nn
 
 # ignore harmless warnings
 import warnings
