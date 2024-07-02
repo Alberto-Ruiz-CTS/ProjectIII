@@ -5,8 +5,7 @@ import functions_model_testing as f
 import os
 from rembg import remove
 from torchvision import models
-
-
+import pickle
 
 def upload_and_display():
   size = 224
@@ -18,37 +17,50 @@ def upload_and_display():
 
     image = remove(image)
     input_path = p.new_path + '/' + filename
+    ext_img_path = p.ext_path + '/' + filename
     inside_data = False
     #Walk through the folder of the images and save it in the new folder without background
     for folder, subfolders, filenames in os.walk(p.new_path):
       for img in filenames:
-        if os.path.isfile(input_path) == False:
-          image.save(input_path, format='PNG')
-        else:
+        if os.path.isfile(input_path) == False and os.path.isfile(ext_img_path) == False:
+          image.save(ext_img_path, format='PNG')
+        elif os.path.isfile(input_path):
           inside_data = True
-    
     st.image(image, width=400)  # Adjust width as needed
 
     #dict with models that are going to be tested and the image size they require as a tuple (model, size) (Different models may require different image sizes)
     test_models = {
-        #"resnet": (models.resnet18(pretrained=True), 224),
-        #"alexnet": (models.alexnet(pretrained=True), 224),
-        "vgg16": (models.vgg16(pretrained=True), 224),
-        "densenet": (models.densenet161(pretrained=True), 224),
-        "inception": (models.inception_v3(pretrained=True), 299),
-        #"googlenet": (models.googlenet(pretrained=True), 224),
+      #"resnet50": (models.resnet50(pretrained=True), 224),
+      'efficientnet_b0': (models.efficientnet_b0(pretrained=True), 224),
+      #"vgg16": (models.vgg16(pretrained=True), 224),
+      #"googlenet": (models.googlenet(pretrained=True), 224)
     }
-        
+
+    # Read dictionary pkl file
+    with open(p.dict_path + '/' + 'features_data.pkl', 'rb') as fp:
+        feats = pickle.load(fp)
+
     #Create a dict with the features for each model and metric combination
     sorted_sim_per_model = {}
     for model_name in test_models:
-        for metrics in ['cosine', 'euclidean', 'manhattan']:
+      if input_path in feats[model_name]: 
+        print('Imagen en el dataset')
+      else:
+        print('No existe imagen en el dataset')
+        model, size = test_models[model_name]
+        model = f.get_encoder(model_name)
+        input_feature = f.features_extraction(model, p.ext_path, size=size)
+        print(input_feature)
+        #feats[model_name][input_path] = input_feature[input_path]
+        feats[model_name].update(input_feature)
+
+      for metrics in ['cosine', 'euclidean', 'manhattan']:
+        if inside_data == True:
+          sorted_similarities = f.similarity_extraction(input_path, feats[model_name], method=metrics)
+        else:
+          sorted_similarities = f.similarity_extraction(ext_img_path, feats[model_name], method=metrics)
+        sorted_sim_per_model[model_name + '_' + metrics] = sorted_similarities
     
-            model, size = test_models[model_name]
-            features = f.features_extraction(model, p.new_path, size=size)
-            sorted_similarities = f.similarity_extraction(input_path, features, method=metrics)
-            sorted_sim_per_model[model_name + '_' + metrics] = sorted_similarities
-      
     #Rank the best recommendations for each model
     ranks = f.ranking_similarities(sorted_sim_per_model, top_n=10)
 
@@ -63,8 +75,6 @@ def upload_and_display():
         recommended_images.append(key)
       elif inside_data == True and i != 0 and i < 4:
         recommended_images.append(key)
-
-    #recommended_images = []
 
     col1, col2, col3 = st.columns(3)
     for i, recommended_image in enumerate(recommended_images):

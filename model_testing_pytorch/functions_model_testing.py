@@ -31,7 +31,7 @@ def remove_background(image_path, new_path):
 
 #Extract the features of an image
 def features_extraction(model, im_path, size=224):
-    """ Search the paths for the iamges, preprocess the data and return the features for an image """
+    """ Search the paths for the images, preprocess the data and return the features for an image """
 
     #define transformations to preprocess images
     preprocess = transforms.Compose([     
