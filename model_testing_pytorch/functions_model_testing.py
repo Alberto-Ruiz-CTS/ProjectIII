@@ -88,7 +88,7 @@ def get_encoder(model_name):
         case 'vgg16':
             model = models.vgg16(pretrained=True)
             model.classifier = model.classifier[:-1]
-            return model_name
+            return model
         case 'resnet50':
             model = models.resnet50(pretrained=True)
             model = nn.Sequential(*list(model.children())[:-1])
