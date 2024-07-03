@@ -29,6 +29,7 @@ def remove_background(image_path, new_path):
     output = remove(input)
     output.save(new_path + '/' + image_name, format='PNG')
 
+'''
 #Extract the features of an image
 def features_extraction(model, im_path, size=224):
     """ Search the paths for the images, preprocess the data and return the features for an image """
@@ -102,6 +103,48 @@ def get_encoder(model_name):
             model = models.googlenet(pretrained=True)
             model = nn.Sequential(*list(model.children())[:-1])
             return model
+'''
+
+#Extract the features of an image
+def features_extraction(model, im_path):
+    """ Search the paths for the iamges, preprocess the data and return the features for an image """
+
+    # Get all image file paths
+    img_names = [os.path.join(folder, img) for folder, _, filenames in os.walk(im_path) for img in filenames]
+    # img_names.remove("/teamspace/studios/this_studio/ProjectIII/women_fashion.DS_Store")
+
+    #Create dict with paths as keys and tensors of the images as values
+    images = {path: Image.open(path).convert('RGB') for path in img_names}
+
+    # Extract features and reshape
+    features_extracted = {path: model.forward(images[path]) for path in images.keys()}
+
+    return features_extracted
+
+#Give the similarity between to images
+def similarity_extraction(input_image_path, features_extracted, method="cosine"):
+    """ Calculate the similarity of two images with the method provides in input and returns a sorted dictionary """
+
+    input_features = features_extracted[input_image_path]
+    similarities = {} #Dict with path as keys and similarity as values
+
+    if method == "cosine":
+        for path in features_extracted:
+            similarities[path] = 1 - cosine(input_features, features_extracted[path])
+    elif method == "euclidean":
+        for path in features_extracted:
+            similarities[path] = - euclidean(input_features, features_extracted[path])
+    elif method == "manhattan":
+        for path in features_extracted:
+            similarities[path] = - cityblock(input_features, features_extracted[path])
+
+    # Sort this similarities dict by their similarities from largest to smallest
+    keys = list(similarities.keys())
+    values = list(similarities.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_similarities = {keys[i]: values[i] for i in sorted_value_index}
+    
+    return sorted_similarities
 
 #Give the similarity between to images
 def similarity_extraction(input_image_path, features_extracted, method="cosine"):
