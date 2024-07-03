@@ -136,14 +136,20 @@ def similarity_extraction(input_image_path, features_extracted, method="cosine")
     return sorted_similarities
 
 #Make a rank of each model
-def ranking_similarities(dict_similarities, top_n=10):
+def ranking_similarities(dict_similarities, metrics, models, top_n=10):
     """ Create a list of the rankings for each model """
+
+    dict_sim = {}
+    
+    for model in models:
+        for metric in metrics:
+            dict_sim[model + '_' + metric] = dict_similarities[model + '_' + metric]
     
     ranks = []
  
-    for models in dict_similarities:
+    for models in dict_sim:
         rank = []
-        for i, path in enumerate(dict_similarities[models]):
+        for i, path in enumerate(dict_sim[models]):
             if (i != 0) and (i <= top_n):
                 rank.append(path)
  
@@ -151,7 +157,7 @@ def ranking_similarities(dict_similarities, top_n=10):
    
     return ranks
 
-#Returns a rank with the fusion of the individuals ranking
+# Recirpocal Rank Fusion
 def reciprocal_rank_fusion(ranks, k=0):
     """ Fusion of the differents ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
 
@@ -172,6 +178,58 @@ def reciprocal_rank_fusion(ranks, k=0):
 
     return sorted_scores
     
+
+# Borda Algorithm
+def borda_count(ranks):
+    """ Broda algorithm of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+
+    n = len(ranks[0])
+    scores = {}
+    for rank in ranks:
+        for i, path in enumerate(rank):
+            if path in scores.keys():
+                scores[path] += (n - i)
+            else:
+                scores[path] = (n - i)
+
+    #sort this scores dict by their score values from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
+
+
+# Relative Score Fusion
+def relative_score_fusion(sorted_sim_per_model, metrics, models):
+    """ Fusion of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+
+    # normalize similiarities
+    norm_similarity = {}
+    for model_name in models:
+        for metric in metrics:
+            total_sim = sum(sorted_sim_per_model[model_name + '_' + metric].values())
+            norm_similarity[model_name + '_' + metric] = {}
+            for path in sorted_sim_per_model[model_name + '_' + metric]:
+                norm_similarity[model_name + '_' + metric][path] = sorted_sim_per_model[model_name + '_' + metric][path] / total_sim
+
+    scores = {}
+    for method in norm_similarity:
+        for path in norm_similarity[method]:
+            if path in scores.keys():
+                scores[path] += norm_similarity[method][path]
+            else:
+                scores[path] = norm_similarity[method][path]
+
+    #sort this scores dict by their score values from largest to smallest
+    keys = list(scores.keys())
+    values = list(scores.values())
+    sorted_value_index = np.argsort(values)[::-1]
+    sorted_scores = {keys[i]: values[i] for i in sorted_value_index}
+
+    return sorted_scores
+
 #Plot the best recommendations for the input image
 def plot_recommendations(sorted_similarities, input_image_path, model_name="", top_n=4):
     """ Plot the best k recommendations for the input image """
