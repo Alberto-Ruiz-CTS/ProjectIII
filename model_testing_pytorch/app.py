@@ -10,6 +10,29 @@ import pickle
 
 def upload_and_display():
   size = 224
+  final_dict = {}
+  recommended_images = []
+  default_models = ['vgg16']
+  default_metrics = ['cosine']
+  opt_models = ['vgg16','resnet50','efficient_net_b0']
+  opt_metrics = ['cosine', 'euclidean', 'manhattan']
+  opt_fusion = ['reciprocal', 'borda', 'relative score']
+
+  # Create the columns
+  col1, col2, col3 = st.columns(3)
+
+  # Create the selectbox in the first column
+  with col1:
+    fusion_method = st.selectbox("Select an option:", opt_fusion, key="select_rank")
+
+  # Create the multiselect box in the second column
+  with col2:
+    metrics = st.multiselect("Select one or more options:", opt_metrics, default=default_metrics, key="mselect_metrics")
+
+  # Create the multiselect box in the second column
+  with col3:
+    test_models = st.multiselect("Select one or more options:", opt_models, default=default_models, key="mselect_models")
+
 
   uploaded_image = st.file_uploader("Upload Image")
   if uploaded_image is not None:
@@ -27,11 +50,7 @@ def upload_and_display():
           image.save(ext_img_path, format='PNG')
         elif os.path.isfile(input_path):
           inside_data = True
-    st.image(image, width=400)  # Adjust width as needed
-
-    #dict with models that are going to be tested and the image size they require as a tuple (model, size) (Different models may require different image sizes)
-    test_models = ['vgg16','resnet50','efficient_net_b0']
-    metrics = ['cosine', 'euclidean', 'manhattan']
+    st.image(image, width=200)  # Adjust width as needed
 
     # Read dictionary pkl file
     with open(p.dict_path + '/' + 'features_data.pkl', 'rb') as fp:
@@ -54,14 +73,19 @@ def upload_and_display():
           sorted_similarities = f.similarity_extraction(ext_img_path, feats[model_name], method=metric)
         sorted_sim_per_model[model_name + '_' + metric] = sorted_similarities
 
-    #Rank the best recommendations for each model
-    ranks = f.ranking_similarities(sorted_sim_per_model, metrics, test_models, top_n=10)
+    if fusion_method != 'relative score':
+      #Rank the best recommendations for each model
+      ranks = f.ranking_similarities(sorted_sim_per_model, metrics, test_models, top_n=10)
 
-    #Create a rank fusion of all individuals rankings
-    final_dict = f.reciprocal_rank_fusion(ranks)
-        
-    # Placeholder recommendation logic (replace with your actual logic)
-    recommended_images = []
+    if fusion_method == 'reciprocal':
+      #Create a rank fusion of all individuals rankings
+      final_dict = f.reciprocal_rank_fusion(ranks)
+    elif fusion_method == 'borda':
+      #Create a rank fusion of all individuals rankings
+      final_dict = f.borda_count(ranks)
+    elif fusion_method == 'relative score':
+      # Apply Relative Score Fusion to combine different methods
+      final_dict = f.relative_score_fusion(sorted_sim_per_model, metrics, test_models)
 
     for i, key in enumerate(final_dict.keys()):
       if i < 3 and inside_data == False:
