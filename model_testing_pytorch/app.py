@@ -42,7 +42,7 @@ def upload_and_display():
 
     #Remove background checbox functionality
     if background:
-      image = remove(image)
+      #image = remove(image)
       path = p.new_path
       input_path = p.new_path + '/' + filename
       ext_path = p.ext_path + '_rb'
@@ -59,10 +59,18 @@ def upload_and_display():
     for folder, subfolders, filenames in os.walk(path):
       for img in filenames:
         if os.path.isfile(input_path) == False and os.path.isfile(ext_img_path) == False:
+          if background:
+            image = remove(image)
           image.save(ext_img_path, format='PNG')
         elif os.path.isfile(input_path):
           inside_data = True
     
+    if background:
+      if inside_data == False:
+        image = Image.open(ext_img_path)
+      else:
+        image = Image.open(input_path)
+
     image = image.resize((size, size))
     dress_title.subheader("Your Dress")  # Add title or description 
     dress.image(image, width=size)  # Adjust width as needed
