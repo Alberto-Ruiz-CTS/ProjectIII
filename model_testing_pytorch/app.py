@@ -43,18 +43,20 @@ def upload_and_display():
     #Remove background checbox functionality
     if background:
       image = remove(image)
+      path = p.new_path
       input_path = p.new_path + '/' + filename
       ext_path = p.ext_path + '_rb'
       ext_img_path = ext_path + '/' + filename
       pkl = 'features_data_rb.pkl'   
     else:
+      path = p.data_path
       input_path = p.data_path + '/' + filename
       ext_path = p.ext_path
       ext_img_path = p.ext_path + '/' + filename
       pkl = 'features_data.pkl'
       
     #Walk through the folder of the images and save it in the new folder without background
-    for folder, subfolders, filenames in os.walk(p.new_path):
+    for folder, subfolders, filenames in os.walk(path):
       for img in filenames:
         if os.path.isfile(input_path) == False and os.path.isfile(ext_img_path) == False:
           image.save(ext_img_path, format='PNG')
@@ -70,10 +72,14 @@ def upload_and_display():
       feats = pickle.load(fp)
 
     for model_name in test_models:
-      if input_path not in feats[model_name]: 
+      if input_path not in feats[model_name].keys() and ext_img_path not in feats[model_name].keys(): 
         featuresExtractorModel = FeaturesExtractorModel(model_name)
         input_feature = f.features_extraction(featuresExtractorModel, ext_path)
         feats[model_name].update(input_feature)
+
+        # save dictionary to person_data.pkl file
+        with open(p.dict_path + '/' + pkl, 'wb') as fp:
+          pickle.dump(feats, fp)
 
       for metric in metrics:
         if inside_data == True:
