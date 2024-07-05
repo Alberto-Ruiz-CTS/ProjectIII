@@ -75,9 +75,14 @@ def upload_and_display():
     dress_title.subheader("Your Dress")  # Add title or description 
     dress.image(image, width=size)  # Adjust width as needed
 
-    # Read dictionary pkl file
-    with open(p.dict_path + '/' + pkl, 'rb') as fp:
-      feats = pickle.load(fp)
+    if 'feats' + pkl not in st.session_state:
+      # Read dictionary pkl file
+      with open(p.dict_path + '/' + pkl, 'rb') as fp:
+        feats = pickle.load(fp)
+      st.session_state['feats' + pkl] = feats
+
+    # Use the dictionary stored in session state
+    feats = st.session_state['feats' + pkl]
 
     for model_name in test_models:
       if input_path not in feats[model_name].keys() and ext_img_path not in feats[model_name].keys(): 
@@ -86,8 +91,8 @@ def upload_and_display():
         feats[model_name].update(input_feature)
 
         # save dictionary to person_data.pkl file
-        with open(p.dict_path + '/' + pkl, 'wb') as fp:
-          pickle.dump(feats, fp)
+        # with open(p.dict_path + '/' + pkl, 'wb') as fp:
+        #   pickle.dump(feats, fp)
 
       for metric in metrics:
         if inside_data == True:

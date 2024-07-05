@@ -35,11 +35,14 @@ class FeaturesExtractorModel(nn.Module):
         x = self.transform(x)
         x = x.unsqueeze(0)
 
-        # Extract features based on the model type
-        if self.model_name == 'vit_b_16':
-            features = self.extract_features_vit_b_16(x)
-        else:
-            features = self.model(x)
+        self.model.eval()
+        
+        with torch.no_grad():
+            # Extract features based on the model type
+            if self.model_name == 'vit_b_16':
+                features = self.extract_features_vit_b_16(x)
+            else:
+                features = self.model(x)
 
         features = features.detach().numpy().reshape(-1)
 
