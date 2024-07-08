@@ -6,12 +6,16 @@ from torchvision.models import ViT_B_16_Weights
 from PIL import Image as PIL_Image
 
 class FeaturesExtractorModel(nn.Module):
+    '''
+    This class contains the model that acts as a feature extractor in the dress recommender system.
+    '''
     
     def __init__(self, model_name="vgg16"):
         super(FeaturesExtractorModel, self).__init__()
 
         # Load pre-trained model based on name
-        self.available_models = {'vgg16': models.vgg16(models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)),
+        self.available_models = {'alexnet': models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1),
+                                  'vgg16': models.vgg16(models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)),
                                   'resnet50': models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1),
                                   'googlenet': models.googlenet(weights=models.GoogLeNet_Weights.IMAGENET1K_V1),
                                   'efficient_net_b0': models.efficientnet_b0(weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1),
@@ -31,6 +35,17 @@ class FeaturesExtractorModel(nn.Module):
         self.get_model()
 
     def forward(self, x):
+        """
+        Extracts features from an input image using the specified pre-trained model.
+
+        Args:
+            x (torch.Tensor): A PyTorch tensor representing the input image. The expected format 
+                                depends on the model type and may require additional channels or 
+                                preprocessing (e.g., normalization).
+
+        Returns:
+            features (np.ndarray): A NumPy array containing the extracted features as a flattened vector.
+        """
 
         x = self.transform(x)
         x = x.unsqueeze(0)
@@ -49,13 +64,26 @@ class FeaturesExtractorModel(nn.Module):
         return features
 
     def get_model(self):
-        # All of the models except vgg16 share layer extraction procedure
-        if self.model_name == 'vgg16':
+        """
+        Modifies the pre-trained model for feature extraction based on the model.
+        """
+
+        if self.model_name == 'vgg16' or self.model_name == 'alexnet':
             self.model.classifier = self.model.classifier[:-1]
         elif self.model_name != 'vit_b_16':
             self.model = nn.Sequential(*list(self.model.children())[:-1])
 
     def extract_features_vit_b_16(self, img):
+        """
+        Extracts features from an input image using the ViT-B/16 model.
+
+        Args:
+            img (torch.Tensor): A PyTorch tensor representing the input image. The expected format 
+                                depends on the model's pre-processing steps.
+
+        Returns:
+            features(torch.Tensor): A PyTorch tensor containing the extracted features for the ViT-B/16 model.
+        """
 
         features = self.model._process_input(img)
 

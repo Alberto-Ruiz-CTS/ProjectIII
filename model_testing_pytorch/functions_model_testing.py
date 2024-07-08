@@ -16,9 +16,19 @@ import torch.nn as nn
 import warnings
 warnings.filterwarnings("ignore")
 
-#Remove the background of an image
 def remove_background(image_path, new_path):
-    """ Remove the background of the images and save it in a new folder """
+    """
+    Removes the background of an image and save it with a 
+    transparent background to a new folder.
+
+    Args:
+        image_path (str): The path to the image file.
+        new_path (str): The path to the directory where the processed image
+                        will be saved.
+
+    Returns:
+        None
+    """
 
     input = Image.open(image_path)
 
@@ -29,91 +39,23 @@ def remove_background(image_path, new_path):
     output = remove(input)
     output.save(new_path + '/' + image_name, format='PNG')
 
-'''
-#Extract the features of an image
-def features_extraction(model, im_path, size=224):
-    """ Search the paths for the images, preprocess the data and return the features for an image """
-
-    #define transformations to preprocess images
-    preprocess = transforms.Compose([     
-            transforms.Resize(size),             # resize shortest side to specified pixels
-            transforms.CenterCrop(size),         # crop longest side to specified pixels at center
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406],
-                                [0.229, 0.224, 0.225])
-        ])
-
-    img_names = []
-
-    #Create list with all the paths to the images
-    for folder, subfolders, filenames in os.walk(im_path):
-        for img in filenames:
-            img_names.append(folder+'/'+img)
-
-    try:
-        img_names.remove("/teamspace/studios/this_studio/ProjectIII/women_fashion.DS_Store") #remove DS_Store if it is in the folder
-    except:
-        pass
-
-    #Create dict with paths as keys and tensors of the images as values
-    images = {} 
-
-    for path in img_names: 
-
-        try:
-            image = preprocess(Image.open(path).convert('RGB'))
-            images[path] = image
-        
-        except:
-            pass #prevent any error with particular images
-
-    #inception_v3_model = models.model(pretrained=True) #Initialize model
-
-    for param in model.parameters(): #Freeze all parameters of the model
-        param.requires_grad = False
-
-    #Create dict with paths as keys and features (numpy array) as values
-    features_extracted = {}
-
-    model.eval()
-    with torch.no_grad():
-        for path in images.keys():
-            feature = model(images[path].view(1,3,size,size)).numpy()
-            features_extracted[path] = np.reshape(feature, feature.shape[1])
-
-    return features_extracted
-
-#Drop fully connected layer from the model to retain only th encoder
-def get_encoder(model_name):
-
-    match model_name: #each model requires a different action depending
-        case 'vgg16':
-            model = models.vgg16(pretrained=True)
-            model.classifier = model.classifier[:-1]
-            return model
-        case 'resnet50':
-            model = models.resnet50(pretrained=True)
-            model = nn.Sequential(*list(model.children())[:-1])
-            return model
-        case 'efficientnet_b0':
-            model = models.efficientnet_b0(pretrained=True)
-            model = nn.Sequential(*list(model.children())[:-1])
-            return model
-        case 'googlenet':
-            model = models.googlenet(pretrained=True)
-            model = nn.Sequential(*list(model.children())[:-1])
-            return model
-'''
-
-#Extract the features of an image
 def features_extraction(model, im_path):
-    """ Search the paths for the iamges, preprocess the data and return the features for an image """
+    """
+    Extracts features for images located within a specified directory path.
+
+    Args:
+        model (object): The pre-trained deep learning model used for feature extraction.
+        im_path (str): The path to the directory containing the images.
+
+    Returns:
+        features_extracted (dict): A dictionary where keys are the image paths and values are the corresponding
+                                   extracted feature tensors.
+    """
 
     # Get all image file paths
     img_names = [os.path.join(folder, img) for folder, _, filenames in os.walk(im_path) for img in filenames]
-    # img_names.remove("/teamspace/studios/this_studio/ProjectIII/women_fashion.DS_Store")
 
-    #Create dict with paths as keys and tensors of the images as values
+    # Create dict with paths as keys and tensors of the images as values
     images = {path: Image.open(path).convert('RGB') for path in img_names}
 
     # Extract features and reshape
@@ -121,9 +63,27 @@ def features_extraction(model, im_path):
 
     return features_extracted
 
-#Give the similarity between to images
 def similarity_extraction(input_image_path, features_extracted, method="cosine"):
-    """ Calculate the similarity of two images with the method provides in input and returns a sorted dictionary """
+    """
+    Calculates the similarity between a given image and other images based on pre-extracted features.
+
+    Args:
+        input_image_path (str): The path to the image for which you want to find similar images.
+        features_extracted (dict): A dictionary that maps image paths (str) to their corresponding 
+                                    extracted feature tensors (object). This dictionary is returned 
+                                    by the `features_extraction` function.
+        method (str, optional): The method used to calculate similarity. 
+                                    Defaults to "cosine". Supported methods include:
+                                        - "cosine": Cosine similarity.
+                                        - "euclidean": Euclidean distance (negative similarity).
+                                        - "manhattan": Manhattan distance (negative similarity).
+
+    Returns:
+        sorted_simlarities (dict): A dictionary where keys are the image paths (str) from the `features_extracted` dictionary, 
+                                     and values are the corresponding similarity scores (float) between those images and the 
+                                     input image. The dictionary is sorted in descending order of similarity, with the most similar 
+                                     images having the highest values.
+    """
 
     input_features = features_extracted[input_image_path]
     similarities = {} #Dict with path as keys and similarity as values
@@ -146,64 +106,60 @@ def similarity_extraction(input_image_path, features_extracted, method="cosine")
     
     return sorted_similarities
 
-#Give the similarity between to images
-def similarity_extraction(input_image_path, features_extracted, method="cosine"):
-    """ Calculate the similarity of two images with the method provides in input and returns a sorted dictionary """
-
-    if method not in ("cosine", "euclidean", "manhattan"):
-
-        raise ValueError("Method not valid")
-
-    input_features = features_extracted[input_image_path]
-    
-    similarities = {} #Dict with path as keys and similarity as values
-
-    if method == "cosine":
-        for path in features_extracted:
-            similarities[path] = 1 - cosine(input_features, features_extracted[path])
-    elif method == "euclidean":
-        for path in features_extracted:
-            similarities[path] = - euclidean(input_features, features_extracted[path])
-    elif method == "manhattan":
-        for path in features_extracted:
-            similarities[path] = - cityblock(input_features, features_extracted[path])
-    else:
-        raise Exception("Method not implemented yet")
-
-    #sort this similarities dict by their similarities from largest to smallest
-    keys = list(similarities.keys())
-    values = list(similarities.values())
-    sorted_value_index = np.argsort(values)[::-1]
-    sorted_similarities = {keys[i]: values[i] for i in sorted_value_index}
-    
-    return sorted_similarities
-
-#Make a rank of each model
 def ranking_similarities(dict_similarities, metrics, models, top_n=10):
-    """ Create a list of the rankings for each model """
+    """
+    Generates rankings of similar images based on pre-calculated similarities from different models and metrics.
+
+    Args:
+        dict_similarities (dict): A dictionary where keys are combinations of model names (str) and 
+                                    metrics (str) concatenated with an underscore ('_'). Values are 
+                                    dictionaries returned by the `similarity_extraction` function. 
+                                    These inner dictionaries map image paths (str) to their 
+                                    corresponding similarity scores (float).
+        metrics (list): A list of strings representing the metrics used for similarity calculation 
+                          ("cosine", "euclidean", "manhattan").
+        models (list): A list of strings representing the different models used for feature extraction.
+        top_n (int, optional): The maximum number of top similar images to include in each ranking.
+                                Defaults to 10.
+
+    Returns:
+        ranks (list): A list of rankings, where each element is a sublist representing a ranking for a 
+                        specific combination of model and metric. Each sublist contains the top-n most similar 
+                        image paths (str) in descending order based on their similarity scores.
+    """
 
     dict_sim = {}
-    
     for model in models:
         for metric in metrics:
             dict_sim[model + '_' + metric] = dict_similarities[model + '_' + metric]
     
     ranks = []
- 
     for models in dict_sim:
         rank = []
         for i, path in enumerate(dict_sim[models]):
             if (i != 0) and (i <= top_n):
                 rank.append(path)
- 
         ranks.append(rank)
    
     return ranks
 
-# Recirpocal Rank Fusion
 def reciprocal_rank_fusion(ranks, k=0):
-    """ Fusion of the differents ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+    """
+    Performs reciprocal rank fusion (RRF) to combine multiple image rankings and 
+    generate a single, fused ranking.
 
+    Args:
+        ranks (list): A list of rankings, where each element is a sublist representing 
+                        a ranking for a specific model or metric. Each sublist contains 
+                        image paths (str) in their order of similarity.
+        k (int, optional): A constant used in the RRF scoring formula. Defaults to 0.
+
+    Returns:
+        sorted_scores (dict): A dictionary where keys are image paths (str) and values are their 
+                                corresponding fused ranking scores (float). The dictionary is sorted in 
+                                descending order of scores, meaning images with higher scores are ranked 
+                                higher in the final, fused ranking.
+    """
     n = len(ranks[0])
     scores = {}
     for rank in ranks:
@@ -222,10 +178,22 @@ def reciprocal_rank_fusion(ranks, k=0):
     return sorted_scores
     
 
-# Borda Algorithm
 def borda_count(ranks):
-    """ Broda algorithm of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+    """
+    Performs Borda Count to aggregate multiple image rankings and 
+    generate a single, fused ranking.
 
+    Args:
+        ranks (list): A list of rankings, where each element is a sublist representing 
+                        a ranking for a specific model or metric. Each sublist contains 
+                        image paths (str) in their order of similarity.
+
+    Returns:
+        sorted_scores (dict): A dictionary where keys are image paths (str) and values are their 
+                                corresponding Borda Count scores (int). The dictionary is sorted in 
+                                descending order of scores, meaning images with higher scores are ranked 
+                                higher in the final, fused ranking.
+    """
     n = len(ranks[0])
     scores = {}
     for rank in ranks:
@@ -244,10 +212,27 @@ def borda_count(ranks):
     return sorted_scores
 
 
-# Relative Score Fusion
 def relative_score_fusion(sorted_sim_per_model, metrics, models):
-    """ Fusion of the different ranks the user provides and returns a sorted dictionary with the best image paths and their ranking scores """
+    """
+    Performs relative score fusion to combine multiple pre-sorted image similarity dictionaries 
+    and generate a single, fused ranking.
 
+    Args:
+        sorted_sim_per_model (dict): A dictionary where keys are combinations of model names (str) 
+                                        and metrics (str) concatenated with an underscore ('_'). 
+                                        Values are dictionaries returned by the `similarity_extraction` 
+                                        function after sorting them in descending order of similarity 
+                                        (highest similarity scores first).
+        metrics (list): A list of strings representing the metrics used for similarity calculation 
+                        (e.g., "cosine", "euclidean", "manhattan").
+        models (list): A list of strings representing the different models used for feature extraction.
+
+    Returns:
+        sorted_scores (dict): A dictionary where keys are image paths (str) and values are their 
+                                corresponding fused ranking scores (float) calculated using relative score fusion. 
+                                The dictionary is sorted in descending order of scores, meaning images with higher 
+                                scores are ranked higher in the final, fused ranking.
+    """
     # normalize similiarities
     norm_similarity = {}
     for model_name in models:
@@ -273,10 +258,22 @@ def relative_score_fusion(sorted_sim_per_model, metrics, models):
 
     return sorted_scores
 
-#Plot the best recommendations for the input image
 def plot_recommendations(sorted_similarities, input_image_path, model_name="", top_n=4):
-    """ Plot the best k recommendations for the input image """
+    """
+    Visualizes the top-n most similar images based on the provided ranked similarities.
 
+    Args:
+        sorted_similarities (dict): A dictionary where keys are image paths (str) and values are 
+                                    their corresponding similarity scores (float). The dictionary 
+                                    is assumed to be sorted in descending order of similarity scores.
+        input_image_path (str): The path to the input image for which recommendations are shown.
+        model_name (str, optional): The name of the model used for similarity calculation 
+                                    (used for labeling the input image). Defaults to "".
+        top_n (int, optional): The maximum number of top recommendations to visualize. Defaults to 4.
+
+    Returns:
+        None
+    """
     #Create list with the paths for the top_n most similar images
     sorted_paths = []
 
