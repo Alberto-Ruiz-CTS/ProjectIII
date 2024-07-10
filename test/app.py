@@ -26,7 +26,7 @@ def sidebar():
   default_models = ['vgg16']
   default_metrics = ['cosine']
   default_fusion = ['reciprocal']
-  opt_models = ['vgg16','resnet50','efficient_net_b0', 'vit_b_16', 'alexnet']
+  opt_models = ['vgg16','resnet50','efficient_net_b0', 'vit_b_16', 'alexnet', 'googlenet']
   opt_metrics = ['cosine', 'euclidean', 'manhattan']
   opt_fusion = ['reciprocal', 'borda', 'relative score']
   opt = {}
@@ -93,7 +93,8 @@ def similarities(opt, path, feats):
   sorted_sim_per_model = {}
 
   for model_name in opt["test_models"]:
-    if path["input_path"] not in feats[model_name].keys() and path["ext_img_path"] not in feats[model_name].keys(): 
+    if path['inside_data'] == False:  
+    # if path["input_path"] not in feats[model_name].keys() and path["ext_img_path"] not in feats[model_name].keys(): 
       featuresExtractorModel = FeaturesExtractorModel(model_name)
       ext_feature = f.features_extraction(featuresExtractorModel, path["ext_path"])
       input_feature[path['ext_img_path']] = ext_feature[path['ext_img_path']]
