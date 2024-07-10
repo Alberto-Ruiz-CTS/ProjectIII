@@ -89,12 +89,15 @@ def upload(background):
  
 def similarities(opt, path, feats):
 
+  input_feature = {}
   sorted_sim_per_model = {}
 
   for model_name in opt["test_models"]:
     if path["input_path"] not in feats[model_name].keys() and path["ext_img_path"] not in feats[model_name].keys(): 
       featuresExtractorModel = FeaturesExtractorModel(model_name)
-      input_feature = f.features_extraction(featuresExtractorModel, path["ext_path"])
+      ext_feature = f.features_extraction(featuresExtractorModel, path["ext_path"])
+      input_feature[path['ext_img_path']] = ext_feature[path['ext_img_path']]
+      print(len(feats[model_name]))
       feats[model_name].update(input_feature)
 
     for metric in opt["metrics"]:
@@ -103,6 +106,11 @@ def similarities(opt, path, feats):
       else:
         sorted_similarities = f.similarity_extraction(path["ext_img_path"], feats[model_name], method=metric)
       sorted_sim_per_model[model_name + '_' + metric] = sorted_similarities
+      
+  for model_name in opt["test_models"]:
+    feats[model_name].pop(path['ext_img_path'])
+    print(len(feats[model_name]))
+    print(feats[model_name])
 
   return sorted_sim_per_model
 
