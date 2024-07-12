@@ -34,7 +34,7 @@ def sidebar():
 
   with st.sidebar:
 
-    st.header("CNN options: ")
+    st.header("Pretrained models options: ")
 
     opt["fusion_method"] = st.selectbox("Select a fusion method:", opt_fusion, key="select_rank")
 
@@ -141,8 +141,8 @@ def CNN(opt, path):
   if 'feats' + path["pkl"] not in st.session_state:
     # Read dictionary pkl file
     with open(p.dict_path + '/' + path["pkl"], 'rb') as fp:
-      feats = pickle.load(fp)
-    st.session_state['feats' + path["pkl"]] = feats
+      featuress = pickle.load(fp)
+    st.session_state['feats' + path["pkl"]] = featuress
 
   # Use the dictionary stored in session state
   feats = st.session_state['feats' + path["pkl"]]
@@ -253,20 +253,24 @@ def Siamese_Network(path):
   with torch.no_grad():
       for data in testloader:
         
-          img0, img1, p0 , p1 = data
-          img0, img1 = img0.cuda(), img1.cuda()
-          outputs = model(img0,img1)
-  
-          x, predicted = torch.max(outputs, 1)
-        
-          # If the images are similar, then append the similarity score
-          if predicted == 1:
-              # print('Imagen similar')
-              similarities_scores.append(x)
-              #print(p1[0])
-              similar_images_paths.append(p1[0])
-  
-          predictions = np.concatenate((predictions,predicted.cpu().numpy()),0)
+        img0, img1, p0 , p1 = data
+        img0, img1 = img0.cuda(), img1.cuda()
+        outputs = model(img0,img1)
+
+        x = outputs[0,1]
+        similarities_scores.append(x)
+        similar_images_paths.append(p1[0])
+
+        #x, predicted = torch.max(outputs, 1)
+      
+        # If the images are similar, then append the similarity score
+        # if predicted == 1:
+        #     # print('Imagen similar')
+        #     similarities_scores.append(x)
+        #     #print(p1[0])
+        #     similar_images_paths.append(p1[0])
+
+        #predictions = np.concatenate((predictions,predicted.cpu().numpy()),0)
   
   # Sort the images by its
   score_image_pairs = list(zip(similarities_scores, similar_images_paths))
@@ -321,7 +325,7 @@ else:
 
 path = upload(opt["background"])
 # Create tabs
-tabs1, tabs2 = st.tabs(['CNN', 'Siamese Networks'])
+tabs1, tabs2 = st.tabs(['Pretrained Models', 'Siamese Networks'])
 
 # Define content for each tab
 with tabs1:
